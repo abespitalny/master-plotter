@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Master Plotter</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
+    <link href="./static/master-plotter.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="d-none">
+        <div id="chart">
+            <!-- Plotly chart will be drawn inside this DIV -->
+        </div>
+        <!-- This is where the controls will go -->
+        <div>
+            <div class="plot-controls" style="margin-bottom: 0.5rem;">
+                {% for c in controls %}
+                {% set c_id = c.replace(' ', '-') %}
+                <label for="{{c_id}}">{{c.capitalize()}}</label>
+                <select id="{{c_id}}" style="margin-right: 0.5rem;" disabled>
+                    <option value="" selected disabled></option>
+                </select>
+                {% endfor %}
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+                <button id="plot" class="button" disabled>Plot</button>
+                <button id="reset" class="button" disabled>Reset</button>
+                <button id="clear" class="button">Clear</button>
+            </div>
+            <div class="axes-controls" style="margin-bottom: 0.5rem;">
+                <label for="xaxis">x</label>
+                <select id="xaxis" style="margin-bottom: 0.5rem;" disabled></select>
+                <br />
+                <label for="yaxis">y</label>
+                <select id="yaxis" disabled></select>
+            </div>
+            <div>
+                <label for="saved-files">Saved files</label>
+                <select id="saved-files"></select>
+                <button id="load" class="button" style="margin-bottom: 0.5rem;" disabled>Load</button>
+                <br />
+                <input type="text" placeholder="File name" />
+                <button id="save" class="button" disabled>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!--
+    <li><a href="masterplot">Master file</a></li>
+        {% for f in filenames %}
+            <li><a href="masterplot?f={{f|urlencode}}">{{f|e}}</a></li>
+        {% endfor %}
+-->
+</body>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script src="./static/plotly-latest.min.js" type="application/javascript"></script>
+<script src="./static/master-plotter.js" type="application/javascript"></script>
+
+</html>
