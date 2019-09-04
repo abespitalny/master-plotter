@@ -1,5 +1,0 @@
-Flask
-pandas
-simplejson
-sqlite3
-gunicorn

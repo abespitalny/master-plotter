@@ -3,8 +3,13 @@
     var masterChart = document.getElementById("chart"),
         // controls that specify the traces in the chart
         traces = [],
-        plotControlIds = Array.from(document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select")).map(x => x.id.replace('-', ' '));
-    const DEF_AXIS_RANGE = [0, 1];
+        // handle this on the backend
+        plotControlIds = Array.from(document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select")).map(x => x.id.replace('-', ' ')),
+        // id given to the next dropdown to be selected in order to keep track of selection order
+        selectionId = 0;
+    const BTN_IDS = ["plot", "reset", "clear", "open", "save"],
+        DEF_AXIS_RANGE = [0, 1];
+
     // create empty chart
     Plotly.newPlot(masterChart, [], {
         autosize: true,
@@ -92,7 +97,7 @@
     }
 
     var controlSwitch = function (controls = [], btnIds = []) {
-        var btns = (["plot", "reset", "load", "save"].filter(id => btnIds.includes(id))).map(id => document.getElementById(id)),
+        var btns = (BTN_IDS.filter(id => btnIds.includes(id))).map(id => document.getElementById(id)),
             prevBtnStates = new Array(btns.length);
 
         function off() {
@@ -194,13 +199,14 @@
             "yaxis.title.text": axesControls[1].value
         });
 
+        // TEMPORARY!!!! (greater priorities right now)
         document.getElementById("plot").disabled = false;
     });
 
     document.getElementById("plot").addEventListener("click", function (e) {
         // disable reset, load, and save buttons; and changing axes while plotting because I'm nervous about any asynchronous funny business
         var axesControls = Array.from(document.getElementsByClassName("axes-controls")[0].getElementsByTagName("select")),
-            toggleControls = controlSwitch(axesControls, ["plot", "reset", "load", "save"]);
+            toggleControls = controlSwitch(axesControls, ["plot", "reset", "open", "save"]);
         toggleControls.off();
 
         var plotControls = document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select"),
@@ -259,8 +265,65 @@
     document.getElementById("clear").addEventListener("click", function (e) {
         Array.from(document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select")).forEach(elem => {
             elem.value = "";
+            delete elem.dataset.selid;
+            var options = elem.children;
+            for (let i = 0; i < options.length; i++)
+                options[i].hidden = false;
+            // reset the selection id counter
+            selectionId = 0;
         });
     }, false);
+
+    for (let elem of document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select"))
+        elem.addEventListener("change", function (e) {
+            var plotControls = Array.from(document.getElementsByClassName("plot-controls")[0].getElementsByTagName("select")),
+                toggleControls = controlSwitch(plotControls, ["plot", "clear"]);
+            toggleControls.off();
+
+            // get selection id of selected dropdown 
+            var selId = this.dataset.selid;
+            // if this dropdown has not been selected yet then add the current selection id to the dropdown
+            if (!selId) {
+                selId = selectionId++;
+                this.dataset.selid = selId;
+            }
+
+            var configOpts = {};
+            for (let i = 0; i < plotControls.length; i++) {
+                let c = plotControls[i],
+                    id = c.dataset.selid;
+                // if dropdown has never been selected and it's empty then just ignore it
+                if (!id)
+                    continue;
+                // if dropdown was selected before this one then add it to the config options
+                if (id <= selId)
+                    configOpts[plotControlIds[i]] = c.value;
+                // else clear the dropdown
+                else {
+                    c.value = "";
+                    delete c.dataset.selid;
+                }
+            }
+
+            sendRequest("/validconfigs", function (data) {
+                for (let id in data) {
+                    let allOpts = document.getElementById(id).children,
+                        validOpts = data[id];
+                    for (let i = 0; i < allOpts.length; i++) {
+                        let opt = allOpts[i];
+                        opt.hidden = !(validOpts.includes(opt.value));
+                    }
+                }
+
+                toggleControls.on();
+            }, {
+                method: "POST",
+                body: JSON.stringify(configOpts),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }, toggleControls.on);
+        }, false);
 
     for (let elem of document.getElementsByClassName("axes-controls")[0].getElementsByTagName("select"))
         elem.addEventListener("change", function (e) {
@@ -275,7 +338,7 @@
 
             // disable controls
             var axisControl = this,
-                toggleControls = controlSwitch([axisControl], ["reset", "load", "save"]);
+                toggleControls = controlSwitch([axisControl], ["reset", "open", "save"]);
             toggleControls.off();
 
             sendRequest("/changeaxes", function (data) {
@@ -296,14 +359,14 @@
             }, toggleControls.on);
         }, false);
 
-    document.getElementById("load").addEventListener("click", function (e) {
+    document.getElementById("open").addEventListener("click", function (e) {
         var axesControls = Array.from(document.getElementsByClassName("axes-controls")[0].getElementsByTagName("select")),
-            toggleControls = controlSwitch(axesControls, ["plot", "reset", "load", "save"]);
+            toggleControls = controlSwitch(axesControls, ["plot", "reset", "open", "save"]);
         toggleControls.off();
         var wasChartEmpty = !(clearChart());
 
         var filename = this.previousElementSibling.value;
-        sendRequest("/load/" + filename, function (data) {
+        sendRequest("/open/" + filename, function (data) {
             Plotly.addTraces(masterChart, data.traces);
             // load axes into axes menus and set the axes in the chart
             var layout_update = {};
@@ -350,7 +413,7 @@
                     let savedFilesMenu = document.getElementById("saved-files");
                     savedFilesMenu.appendChild(createOptionsDoc([filename]));
                     if (savedFilesMenu.childElementCount === 1)
-                        document.getElementById("load").disabled = false;
+                        document.getElementById("open").disabled = false;
                 }
 
                 toggleControls.on();

@@ -14,7 +14,7 @@
             <!-- Plotly chart will be drawn inside this DIV -->
         </div>
         <!-- This is where the controls will go -->
-        <div>
+        <div class="controls-container">
             <div class="plot-controls" style="margin-bottom: 0.5rem;">
                 {% for c in controls %}
                 {% set c_id = c.replace(' ', '-') %}
@@ -38,8 +38,10 @@
             </div>
             <div>
                 <label for="saved-files">Saved files</label>
+                <!-- use size attribute (check with Tyler by meaning of "file interface") -->
                 <select id="saved-files"></select>
-                <button id="load" class="button" style="margin-bottom: 0.5rem;" disabled>Load</button>
+                <button id="open" class="button" style="margin-bottom: 0.5rem;" disabled>Open</button>
+                <button id="delete" class="button">Delete</button>
                 <br />
                 <input type="text" placeholder="File name" />
                 <button id="save" class="button" disabled>Save</button>

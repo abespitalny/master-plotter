@@ -10,3 +10,12 @@ html, body {
     margin: 0;
     padding: 0;
 }
+
+.controls-container {
+    margin: 0 1.2rem;
+}
+
+/* temporary style to make it look a little nicer for now */
+.plot-controls select, .axes-controls select, #saved-files {
+    width: 10rem;
+}
