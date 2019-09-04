@@ -102,8 +102,8 @@ def init_plot():
         col_names = [c[1] for c in cur.fetchall()]
         axis_opts = list(filter(lambda x: not((x in IGNORE_COLS) or (x in PLOT_CONTROLS)), col_names))
         axis_opts.sort()
-        
-        entries = pathlib.Path(WORK_DIR).iterdir()
+
+        entries = sorted(pathlib.Path(WORK_DIR).iterdir())
         saved_files = []
         for e in entries:
             if e.is_file():
@@ -117,9 +117,6 @@ def init_plot():
         app.logger.error("Error occurred!", exc_info=True)
         res = {"message": "An unexpected error occurred during initialization."}
         code = 500
-    finally:
-        if cur is not None:
-            cur.close()
     return jsonify(res), code
 
 @app.route("/plot", methods=["POST"])
@@ -142,9 +139,40 @@ def plot():
         app.logger.error("Error occurred!", exc_info=True)
         res = {"message": str(e)}
         code = 500
-    finally:
-        if cur is not None:
-            cur.close()
+    return jsonify(res), code
+
+@app.route("/validconfigs", methods=["POST"])
+def valid_configs():
+    res = None
+    code = 200
+    data = request.get_json()
+    try:
+        if data is None:
+            raise ValueError("No data received.")
+
+        cond_keys = []
+        cond_vals = ()
+        for i in data.items():
+            cond_keys.append(i[0])
+            cond_vals += (i[1],)
+
+        conn = get_conn()
+        cur = conn.cursor()
+        config_cond = ' AND '.join(map(lambda x: f"`{x}`=?", cond_keys))
+        sql_get_valid_configs = f"SELECT DISTINCT `{{}}` FROM {TABLE_NAME} WHERE ({config_cond});"
+        res = {}
+        ret_cols = filter(lambda x: not(x in cond_keys), PLOT_CONTROLS)
+        for i in ret_cols:
+            cur.execute(sql_get_valid_configs.format(i), cond_vals)
+            col_vals = cur.fetchall()
+            col_vals = [v[0] for v in col_vals]
+            col_vals.sort()
+            res[i.replace(' ', '-')] = col_vals
+
+    except Exception as e:
+        app.logger.error("Error occurred!", exc_info=True)
+        res = {"message": str(e)}
+        code = 500
     return jsonify(res), code
 
 @app.route("/changeaxes", methods=["POST"])
@@ -184,12 +212,9 @@ def change_axes():
         app.logger.error("Error occurred!", exc_info=True)
         res = {"message": str(e)}
         code = 500
-    finally:
-        if cur is not None:
-            cur.close()
     return jsonify(res), code
 
-@app.route("/load/<string:filename>", methods=["GET"])
+@app.route("/open/<string:filename>", methods=["GET"])
 def load_plot(filename):
     res = None
     code = 200
@@ -212,11 +237,21 @@ def load_plot(filename):
             }
     except Exception as e:
         app.logger.error("Error occurred!", exc_info=True)
-        res = {"message": "An error occurred trying to load chart."}
+        res = {"message": "An error occurred trying to open chart file."}
         code = 500
-    finally:
-        if cur is not None:
-            cur.close()
+    return jsonify(res), code
+
+@app.route("/delete/<string:filename>", methods=["DELETE"])
+def delete_plot(filename):
+    res = None
+    code = 200
+    try:
+        filepath = WORK_DIR / pathlib.Path(filename)
+        filepath.unlink()
+    except Exception as e:
+        app.logger.error("Error occurred!", exc_info=True)
+        res = {"message": "An error occurred trying to delete chart file."}
+        code = 500
     return jsonify(res), code
 
 @app.route("/save/<string:filename>", methods=["POST"])
