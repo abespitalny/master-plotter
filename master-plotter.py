@@ -5,13 +5,17 @@ import sqlite3
 import pandas as pd
 import logging.config
 
-LOG_FILENAME = "./error.log"
+app = Flask(__name__)
+app.config.from_json("./config.json", False)
+
+# path to the log file used in the application
+LOG_PATH = app.config["LOG_PATH"]
 # directory where the saved files are located
-WORK_DIR = "work"
-# name of the SQLite database
-DB_FILE = "./db.sqlite"
+WORK_DIR = app.config["WORK_DIR"]
+# path to the SQLite database
+DB_PATH = app.config["DB_PATH"]
 # name of the table in database
-TABLE_NAME = "master"
+TABLE_NAME = app.config["DB_TABLE_NAME"]
 # columns in database that are not used
 IGNORE_COLS = ["id", "source", "cache sizes"]
 # columns in database used for determining plot
@@ -30,7 +34,7 @@ logging.config.dictConfig({
     "handlers": {
         "file": {
             "class": "logging.FileHandler",
-            "filename": LOG_FILENAME,
+            "filename": LOG_PATH,
             "mode": "a",
             "formatter": "default"
         }
@@ -65,13 +69,11 @@ def get_trace(cur, query, params):
 ## Note: we include 'cache sizes' so that it can be displayed when hovering over a point
 get_trace.sql_query = f"""SELECT {{}}, `cache sizes` FROM {TABLE_NAME} WHERE ({' AND '.join(map(lambda x: f"`{x}`=?", PLOT_CONTROLS))});"""
 
-app = Flask(__name__)
-
 # handle SQLite db connections
 def get_conn():
     conn = getattr(g, "conn", None)
     if conn is None:
-        g.conn = sqlite3.connect(DB_FILE)
+        g.conn = sqlite3.connect(DB_PATH)
         conn = g.conn
     return conn
 
@@ -273,7 +275,6 @@ def save_plot(filename):
         code = 500
     return jsonify(res), code
 
-@app.route('/', defaults={"path": ''}, methods=["GET"])
-@app.route("/<path:path>")
-def show_plot(path):
+@app.route("/masterplotter", methods=["GET"])
+def show_plot():
     return render_template("master-plotter.html", controls=PLOT_CONTROLS), 200

@@ -23,7 +23,25 @@
         }
     }, {
         responsive: true,
-        displaylogo: false
+        displaylogo: false,
+        doubleClick: "autosize",
+        modeBarButtonsToRemove: ["hoverClosestCartesian", "hoverCompareCartesian", "autoScale2d", "resetScale2d"],
+        modeBarButtonsToAdd: [{
+            name: "customResetScale",
+            title: "Reset axes",
+            icon: Plotly.Icons.autoscale,
+            click: function (gd) {
+                if (gd.data.length > 0) {
+                    let layout = gd._fullLayout;
+                    console.log(layout)
+                    layout.xaxis.autorange = true;
+                    layout.xaxis.rangemode = "tozero";
+                    layout.yaxis.autorange = true;
+                    layout.yaxis.rangemode = "tozero";
+                }
+            }
+        }],
+        setBackground: "opaque"
     });
 
     // show page after chart is created

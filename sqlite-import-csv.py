@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import pathlib
+import sys
 import time
 
 # removes any '`' from string and returns result unless the string is now empty 
@@ -71,13 +72,13 @@ def main(args):
             cur.execute(sql_create_index.format("idx_" + str(i), ','.join(map(lambda c: f"`{c}`", n))))
 
         conn.commit()
+        conn.close()
     except Exception as e:
         if conn is not None:
             conn.rollback()
-        print(e)
-    finally:
-        if conn is not None:
             conn.close()
+        print(e)
+        sys.exit(e.errno)
     end = time.time()
     print(f"Time for completion: {end - start}s")
 
